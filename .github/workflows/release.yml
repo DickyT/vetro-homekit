@@ -1,12 +1,14 @@
-# Publishes a release when a version tag is pushed:
-#   git tag v1.2.3 && git push origin v1.2.3
-# The tag must match the version in homekit/manifest.json. The release carries
-# the shard as a .vplugin file, the one Vetro installs from a file.
+# Attaches the shard to a release when a version tag appears: either pushed
+#   git tag 1.2.3 && git push origin 1.2.3
+# or made by creating a release with that tag on GitHub. The tag must match the
+# version in homekit/manifest.json (a leading "v" is allowed). The release
+# carries the shard as a .vplugin file, the one Vetro installs from a file.
+# A release that already has the file is left as it is.
 name: Release
 
 on:
   push:
-    tags: ['v*']
+    tags: ['[0-9]*', 'v[0-9]*']
 
 permissions:
   contents: write
@@ -24,7 +26,7 @@ jobs:
       - name: The tag matches the manifest version
         run: |
           version=$(node -p 'require("./homekit/manifest.json").version')
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+          if [ "$version" != "${GITHUB_REF_NAME#v}" ]; then
             echo "tag $GITHUB_REF_NAME does not match the manifest version $version" >&2
             exit 1
           fi
@@ -44,6 +46,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           file=$(ls dist/*.vplugin)
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            if gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' | grep -qxF "$(basename "$file")"; then
+              echo "the release already has $(basename "$file"); left as it is"
+            else
+              gh release upload "$GITHUB_REF_NAME" "$file"
+            fi
+            exit 0
+          fi
           sha=$(sha256sum "$file" | cut -d' ' -f1)
           {
             echo "## Install"
@@ -57,4 +67,4 @@ jobs:
             echo
             echo "SHA-256: \`$sha\`"
           } > notes.md
-          gh release create "$GITHUB_REF_NAME" "$file" --title "vetro-homekit ${GITHUB_REF_NAME#v}" --notes-file notes.md --generate-notes
+          gh release create "$GITHUB_REF_NAME" "$file" --title "Vetro HomeKit support for Samsung TV v${GITHUB_REF_NAME#v}" --notes-file notes.md --generate-notes

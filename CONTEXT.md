@@ -14,7 +14,7 @@ A Vetro shard that makes the TV a HomeKit Television accessory (HAP over IP), pl
 |---|---|
 | `pack.sh` | Packs a shard folder into `dist/<id>-<version>.vplugin`: one JSON file `{ format: "vetro-plugin", version: 1, manifest, files }`. This is what Vetro installs from a file and what releases carry |
 | `deploy.sh` | Packs (with `pack.sh`) and installs a shard folder through Vetro's plugin API on port 8099. Reads `VETRO_HOST`, or `TV_HOST` from `tools/local.env`; `VETRO_PORT`, `VETRO_TOKEN` |
-| `.github/workflows/release.yml` | On a pushed tag `v<version>` that matches the manifest: runs the portable tests, packs the shard, publishes a GitHub release with the `.vplugin` attached |
+| `.github/workflows/release.yml` | On a pushed tag `<version>` (or `v<version>`) that matches the manifest: runs the portable tests, packs the shard, and attaches the `.vplugin` to that tag's GitHub release. It creates the release if there is none, and leaves a file that is already attached alone |
 | `homekit/README.md` | The shard's own README in the form Vetro's catalog asks for: permissions, every root command and why, network, data kept. It is packed into the bundle |
 | `homekit/manifest.json` | Shard id `homekit`, version, permission `exec`. The relay image's version tag comes from here |
 | `homekit/index.js` | The shard: configuration, HAP stack start/stop, state polling, input names, power modes, relay handover, HTTP routes |
@@ -110,7 +110,7 @@ The setting "When the TV is off" (`offMode`):
 - Nothing is persisted in the relay.
 - **Settings page**: one row with the connection status and a "Set up" button. The dialog generates a random secret in the browser, shows the `docker run` command with it, and saves the secret to the TV on Save. The secret cannot be read back afterwards, by design; the dialog says so. While not connected, the shard looks for the relay every 30 s, so the page turns green by itself once the container runs.
 
-**Releasing the shard**: bump `version` in `homekit/manifest.json` and `VERSION` in `homekit/index.js`, commit, then `git tag v<version>` and push the tag. The workflow does the rest. A published version is never changed; a fix gets a new version.
+**Releasing the shard**: bump `version` in `homekit/manifest.json` and `VERSION` in `homekit/index.js`, commit and push. Then either create a release with the tag `<version>` on GitHub, or `git tag <version>` and push the tag; the workflow attaches the `.vplugin` either way. Tags have no `v` prefix (0.6.8 was released by hand as `0.6.8`, with the file from `bash pack.sh`). A published version is never changed; a fix gets a new version.
 
 **Vetro's official catalog** is the repository `andrearicci93/vetro-plugins` (source in `plugins/<id>/`, bundles built by its scripts, entries signed by the maintainer after review). As it stands this shard cannot go in: the catalog requires ES5 source and runs every shard on Node 4.4.7, 12.4 and 20, and this shard is modern JavaScript that needs BigInt, Ed25519 and X25519 from Node's crypto. The other rules are met (under 20 files and 512 KB, text only, no `eval`, local network only, commands listed in the shard's README). Until that changes, it is distributed from this repository's releases and installed with Developer mode.
 

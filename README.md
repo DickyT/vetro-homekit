@@ -81,7 +81,7 @@ Build the `.vplugin` file that releases carry:
 bash pack.sh
 ```
 
-A release is published by pushing a tag that matches the version in `homekit/manifest.json` (for example `v1.2.3`); a GitHub Actions workflow packs the shard and attaches it.
+A release is a tag named after the version in `homekit/manifest.json` (for example `1.2.3`). Create the release with that tag on GitHub, or just push the tag: a GitHub Actions workflow packs the shard and attaches the `.vplugin` file, unless the release already has it.
 
 Tests run on any machine with Node 18 or later, without a TV (`mdns-race` needs a Mac):
 
