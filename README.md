@@ -1,0 +1,108 @@
+# vetro-homekit
+
+A Samsung TV as a native Apple Home accessory.
+
+vetro-homekit is a Vetro shard (plugin) that runs on the TV itself and speaks HomeKit Accessory Protocol over IP. The TV shows up in the Home app as a Television: no Homebridge, no Home Assistant, no extra hub.
+
+## What you get in Home
+
+- **Power**: turn the TV off, and on (see [When the TV is off](#when-the-tv-is-off)).
+- **Inputs**: the HDMI ports, named after the devices plugged into them, plus AirPlay, Live TV and any apps you add. Home shows which one is on screen and switches between them.
+- **Remote**: the Control Center remote works (arrows, select, back, play/pause, info).
+- **Volume and mute** with the iPhone's volume buttons while the remote is open.
+- **State that follows the TV**: turning it off with the remote shows up in Home right away.
+
+Everything is configured on a settings page served by the TV.
+
+## Requirements
+
+- A Samsung Tizen TV running **Vetro** with unsigned shards allowed (Developer mode in Vetro). Developed and tested on a 2024 QN90D.
+- A HomeKit home with a home hub (HomePod or Apple TV) for remote access and automations, as with any HomeKit accessory.
+- To install from this repository: a computer on the same network with `bash`, `curl` and `python3`.
+
+## Install
+
+```bash
+git clone https://github.com/dickyt/vetro-homekit.git
+```
+
+```bash
+cd vetro-homekit
+```
+
+```bash
+VETRO_HOST=<the TV's address> bash deploy.sh homekit
+```
+
+The TV has to be on. If the call ends with HTTP 408, run it again until it prints `deployed homekit`.
+
+Then open the shard's page in Vetro (or `http://<the TV's address>:8099/plugins/homekit/api/ui`), and add the TV in the Home app with the setup code shown there: **+ → Add Accessory → More options… → Samsung TV**. iOS warns that the accessory is uncertified; choose Add Anyway.
+
+To keep from typing the address every time, copy `tools/local.env.example` to `tools/local.env` and fill it in.
+
+## When the TV is off
+
+A HomeKit hub checks every accessory about once a minute. A Samsung TV in its normal standby is fully asleep and cannot answer, so the question is what should answer for it. The settings page offers three ways:
+
+| Setting | The TV while off | In Home | Turn on from Home |
+|---|---|---|---|
+| **Remote only** | Full sleep | No Response | No |
+| **Stay in low power** | Screen dark, system and network up. Optionally a full sleep after 15 minutes or 1 hour | Off | Yes, in about a second |
+| **Relay** | Full sleep | Off | Yes |
+
+**Relay** needs a small always-on machine on the same network (a NAS, a Raspberry Pi). It runs the [vetro-homekit relay](relay/README.md), which stands in for the TV in Home while it sleeps and wakes it with a Wake-on-LAN packet when you turn it on. Choose Relay on the settings page and press **Set up**: the page gives you the one command to run. The image is [`dickyt/vetro-homekit-relay`](https://hub.docker.com/r/dickyt/vetro-homekit-relay) on Docker Hub.
+
+## How it works
+
+- `homekit/` is the shard. It carries its own HomeKit stack in plain JavaScript (pairing, encrypted sessions, the accessory database, Bonjour), because the TV's Node build lacks some of the usual crypto and there is no package manager on a TV.
+- TV control goes through Vetro: remote keys through its `/control` endpoint, everything else through root commands.
+- A small root script outside Vetro follows the TV's power signals on D-Bus, so Home hears about a power-off before the TV suspends the shard.
+- `relay/` is the relay: the same HomeKit stack serving the accessory database the TV hands over, with power reported as off.
+
+[CONTEXT.md](CONTEXT.md) has the details: the code map, the TV platform's pitfalls, what was learned about Samsung's power states and wake reasons, and how the relay handover works.
+
+## Repository layout
+
+| Path | What it is |
+|---|---|
+| `homekit/` | The shard: `index.js` (main), `television.js` (the accessory), `tv.js` (TV control), `power.js` (power watcher), `relaylink.js` (relay protocol), `ui.html` (settings page), `hap/` (HomeKit stack) |
+| `relay/` | The relay service, its Dockerfile and [its guide](relay/README.md) |
+| `deploy.sh` | Installs a shard folder on the TV over Vetro's plugin API |
+| `test/` | Unit and end-to-end tests, a minimal HomeKit controller, and a local preview of the settings page |
+| `probe/` | A one-off shard that reports what the TV's Node runtime can do |
+| `tools/` | Example local settings: `local.env.example` (the TV's address, for `deploy.sh`), `ssh_config.example` (root shell on the TV) |
+
+## Development
+
+Tests run on any machine with Node 18 or later, without a TV:
+
+```bash
+for t in chacha current-input mdns-race power-hold poweron relay relay-plugin; do node test/$t-test.js || break; done
+```
+
+`relay-test` and `relay-plugin-test` start a relay on the machine and send a Wake-on-LAN packet for a made-up address on your network.
+
+Preview the settings page locally, against a fake TV:
+
+```bash
+HK_STUB_PORT=8123 node test/preview.js /tmp/hk-preview 3600
+```
+
+Then open `http://localhost:8123/plugins/homekit/api/ui`.
+
+Build the relay image for `linux/amd64` and `linux/arm64`:
+
+```bash
+bash relay/build.sh
+```
+
+## Good to know
+
+- **The shard's `config.json` on the TV holds its HomeKit keys and pairings.** `deploy.sh` never sends or overwrites it. Do not post it, or the full output of the `state` endpoint, anywhere.
+- **Vetro's plugin API has no sign-in while Vetro pairing is off.** Anyone on your network can then reach the shard's settings. That is Vetro's trust model, not something this shard adds to or removes.
+- **Uncertified accessory.** This is not an Apple-certified product. Home works with it as it does with other open-source accessories, and warns once when you add it.
+- **Tested on one TV model.** The power handling relies on Samsung-internal interfaces that may differ on other models and firmware versions.
+
+## License
+
+[MIT](LICENSE). Vetro is a separate project with its own license; this repository contains none of its code.

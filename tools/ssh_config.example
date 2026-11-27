@@ -1,0 +1,11 @@
+# Root shell on the TV through Vetro's SSH shard. Copy to tools/ssh_config
+# (not committed), fill in the address and the absolute path, then:
+#   ssh -F tools/ssh_config tv '<command>'
+# The first connection records the TV's host key in tools/known_hosts.
+Host tv
+  HostName 192.0.2.10
+  Port 2222
+  User root
+  BatchMode yes
+  ConnectTimeout 5
+  UserKnownHostsFile /absolute/path/to/vetro-homekit/tools/known_hosts

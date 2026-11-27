@@ -1,0 +1,11 @@
+{
+  "id": "homekit",
+  "name": "HomeKit",
+  "version": "0.6.7",
+  "apiVersion": 1,
+  "permissions": ["exec"],
+  "author": "local",
+  "description": "Native Apple HomeKit Television accessory: power off, inputs and apps, remote, volume and mute. No bridge needed.",
+  "main": "index.js",
+  "ui": { "label": "HomeKit" }
+}

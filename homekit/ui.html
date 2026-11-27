@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark"><title>HomeKit</title>
+<style>
+:root{--bg:#f2f2f7;--card:#fff;--group:#f2f2f7;--line:rgba(60,60,67,.18);--border:rgba(60,60,67,.14);--text:#1c1c1e;--muted:#6e6e73;--accent:#0a84ff;--accent-bg:rgba(10,132,255,.12);--ok:#30d158;--okt:#1f9d3f;--purple:#bf5af2;--purple-bg:rgba(191,90,242,.14);--err:#ff453a;--err-bg:rgba(255,69,58,.12);--flash:rgba(10,132,255,.16);--bar:rgba(255,255,255,.96);--shadow:0 1px 3px rgba(0,0,0,.06),0 6px 18px rgba(0,0,0,.05);--knob-off:#fff;--sw-off:rgba(120,120,128,.32);--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--card:#1c1c1e;--group:#2c2c2e;--line:rgba(84,84,88,.6);--border:rgba(84,84,88,.45);--text:#f2f2f7;--muted:#98989f;--okt:#30d158;--purple-bg:rgba(191,90,242,.2);--accent-bg:rgba(10,132,255,.2);--err-bg:rgba(255,69,58,.18);--flash:rgba(10,132,255,.28);--bar:rgba(28,28,30,.96);--shadow:none;--sw-off:rgba(120,120,128,.5)}}
+*{box-sizing:border-box}
+body{margin:0;padding:20px 16px 110px;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header{display:flex;align-items:center;gap:12px;margin:4px 2px 8px}
+header .t{flex:1 1 auto;min-width:0}
+h1{margin:0;font-size:28px;line-height:1.2;font-weight:700;letter-spacing:.2px}
+.subtitle{margin:2px 0 0;color:var(--muted);font-size:14px}
+h3{margin:0 0 12px;font-size:17px;font-weight:600}h4{margin:14px 0 6px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin:16px 0;box-shadow:var(--shadow)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:15px;height:38px;padding:0 16px;border:0;border-radius:10px;background:var(--accent-bg);color:var(--accent);cursor:pointer;transition:opacity .15s,background .15s}
+button:hover{opacity:.82}button:active{opacity:.65}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.primary{background:var(--accent);color:#fff}
+button.danger{background:var(--err-bg);color:var(--err)}
+button.link{height:auto;line-height:1.2;padding:2px 6px;background:none;font-size:13px;border-radius:6px}
+button.rm{height:auto;padding:2px 6px;background:none;color:var(--muted);font-size:15px;border-radius:6px}
+input[type=text]{font:inherit;color:inherit;min-width:0}
+/* segmented choice */
+.seg{display:inline-flex;gap:2px;padding:2px;border-radius:10px;background:rgba(120,120,128,.2)}
+.seg button{height:30px;padding:0 12px;border-radius:8px;background:none;color:var(--text);font-size:14px;white-space:nowrap}
+.seg button.on{background:#fff;color:#1c1c1e;box-shadow:0 1px 3px rgba(0,0,0,.18);opacity:1;cursor:default}
+@media (prefers-color-scheme:dark){.seg button.on{background:#636366;color:#fff}}
+.irow.wrap{flex-wrap:wrap}.irow.wrap .main{flex-basis:14em}
+.fld{font:inherit;font-size:15px;color:var(--text);height:34px;width:230px;max-width:100%;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--card)}
+.fld:focus{border-color:var(--accent);outline:none}.fld.bad{border-color:var(--err)}
+.meta.ok{color:var(--okt)}.meta.warn{color:var(--err)}
+.meta a{color:var(--accent);text-decoration:none;white-space:nowrap}.meta a:hover{text-decoration:underline}
+.dialog.wide{max-width:640px}
+.steps2{margin:0;padding-left:22px}.steps2>li{margin:0 0 14px;padding-left:4px}.steps2>li::marker{color:var(--muted);font-weight:600}
+/* code snippet with a copy button in its corner */
+.snip{position:relative;margin:8px 0;border:1px solid var(--border);border-radius:12px;background:var(--group);overflow:hidden}
+.snip pre{margin:0;padding:14px 52px 14px 16px;max-height:none;border-radius:0;background:none;overflow-x:auto;white-space:pre;word-break:normal;font:13px/1.65 ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;color:var(--text);tab-size:2}
+.snip pre .dim{color:var(--muted)}.snip pre .sec{color:var(--accent);font-weight:600}
+.snipcopy{position:absolute;top:8px;right:8px;width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:8px;background:var(--card);color:var(--muted);border:1px solid var(--border)}
+.snipcopy:hover{opacity:1;color:var(--text)}.snipcopy.done{color:var(--okt)}
+.dialog .meta{margin:0 0 6px;font-size:13px}
+.callout{display:flex;align-items:flex-start;gap:9px;margin:8px 0;padding:9px 12px;border-radius:10px;border:1px solid rgba(240,170,0,.5);background:rgba(255,200,0,.16);font-size:13.5px;line-height:1.4}
+.callout svg{flex:none;margin-top:1px;color:#b06d00}
+@media (prefers-color-scheme:dark){.callout{border-color:rgba(255,214,10,.4);background:rgba(255,214,10,.13)}.callout svg{color:#ffd60a}}
+.opts{margin:4px 0 0;border-top:1px solid var(--line);padding-top:12px}.opts summary{cursor:pointer;font-size:14px;font-weight:600}
+.opts[open] summary{margin-bottom:6px}
+.fgrp{margin:12px 0 0}.fgrp label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.frow{display:flex;gap:8px;align-items:center}.frow .fld{flex:1 1 auto;width:auto;min-width:0;font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;font-size:14px}.frow button{flex:none;height:34px;padding:0 12px;font-size:14px}
+.fgrp .meta{margin:6px 0 0}
+.pill{display:inline-block;max-width:60%;padding:3px 12px;border-radius:99px;background:var(--group);font-size:13px;color:var(--muted);text-align:right;white-space:nowrap;flex-shrink:0}
+.pill.on{color:var(--okt);background:rgba(48,209,88,.16)}.pill.err{color:var(--err);background:var(--err-bg);white-space:normal;word-break:break-word}
+.msg:empty{display:none}.card>:last-child{margin-bottom:0}
+.msg{min-height:1.3em;font-size:13px;margin:6px 0}.msg.err{color:var(--err)}.msg.ok{color:var(--okt)}
+.note{color:var(--muted);font-size:13px;margin:4px 0}#ago{min-height:1.4em}#ago .bad{color:#ff453a}.mono{font-family:var(--mono);font-size:12px;color:var(--muted)}
+pre{background:var(--group);border-radius:10px;padding:10px;overflow:auto;max-height:240px;font-size:12px;white-space:pre-wrap;word-break:break-word;margin:0 0 8px}
+/* pairing */
+.digits{display:flex;align-items:center;gap:6px;margin:6px 0 14px;flex-wrap:wrap}
+.digits b{display:inline-block;width:40px;height:52px;line-height:52px;text-align:center;border-radius:10px;background:var(--group);font:600 28px/52px var(--mono)}
+.digits i{display:inline-block;width:14px}
+.steps{margin:0 0 6px;padding-left:22px;color:var(--muted);font-size:14px}.steps li{margin:2px 0}.steps b{color:var(--text)}
+.nameline{display:flex;align-items:baseline;gap:10px;margin:0 0 12px;font-size:15px;min-width:0}.nameline .lbl{flex:none;color:var(--muted);font-size:13px}.nameline .val{min-width:0;overflow-wrap:anywhere}
+.status{font-size:15px;margin:0 0 6px}
+/* inputs */
+.ghead{font-size:13px;color:var(--muted);margin:18px 0 6px 4px;text-transform:none}
+.group{background:var(--group);border-radius:12px;overflow:hidden}
+.irow{display:flex;align-items:center;gap:12px;padding:10px 14px;transition:background .3s,opacity .2s}
+.irow+.irow{border-top:1px solid var(--line)}
+.irow.off{opacity:.55}.irow.flash{background:var(--flash)}
+.dot{flex:none;width:10px;height:10px;border-radius:50%;border:2px solid var(--muted);background:transparent}
+.dot.on{background:var(--ok);border-color:var(--ok)}.dot.unk{border-style:dashed}
+.main{flex:1 1 auto;min-width:0}
+.nl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.nl input[type=text]{flex:1 1 8em;height:32px;padding:0 8px;margin-left:-8px;border:1px solid transparent;border-radius:8px;background:transparent;font-size:16px}
+.nl input[type=text]:hover{background:var(--card)}
+.nl input[type=text]:focus{background:var(--card);border-color:var(--accent);outline:none}
+.nl input[type=text].bad{border-color:var(--err);background:var(--card)}
+.meta{font-size:12px;color:var(--muted);word-break:keep-all;overflow-wrap:anywhere}
+.ml{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;margin-top:1px}
+.cluster{display:flex;align-items:center;gap:8px;flex:none}
+.acts{display:inline-flex;align-items:center;gap:8px}
+.hint{font-size:12px;color:var(--err);margin-top:2px}
+.tag{display:inline-flex;align-items:center;height:20px;line-height:1;font-size:12px;padding:0 8px;border-radius:99px;background:rgba(120,120,128,.16);color:var(--muted);white-space:nowrap}
+.tag.custom{color:var(--accent);background:var(--accent-bg)}.tag.home{color:var(--purple);background:var(--purple-bg)}
+.sw{position:relative;display:inline-block;width:51px;height:31px;flex:none}
+.sw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
+.sw span{position:absolute;top:0;right:0;bottom:0;left:0;background:var(--sw-off);border-radius:99px;transition:background .2s}
+.sw span:before{content:"";position:absolute;left:2px;top:2px;width:27px;height:27px;border-radius:50%;background:var(--knob-off);box-shadow:0 2px 4px rgba(0,0,0,.25);transition:transform .2s}
+.sw input:checked+span{background:var(--ok)}.sw input:checked+span:before{transform:translateX(20px)}
+.sw.locked{opacity:.55}.sw.locked input{cursor:default}.sw.locked span:before{box-shadow:none}
+.sw input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.foot{margin:16px 0 0;text-align:center;font-size:12px;color:var(--muted)}
+/* modal */
+.overlay{position:fixed;top:0;right:0;bottom:0;left:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.35);opacity:0;visibility:hidden;transition:opacity .2s ease,visibility 0s linear .2s}
+@supports ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){.overlay{-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}}
+.overlay.open{opacity:1;visibility:visible;transition:opacity .2s ease}
+.dialog{width:100%;max-width:440px;max-height:90vh;display:flex;flex-direction:column;background:var(--card);border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.3);padding:20px;transform:translateY(12px) scale(.98);transition:transform .2s ease}
+.overlay.open .dialog{transform:none}
+.dialog p{margin:0 0 8px}
+.mh{display:flex;align-items:center;gap:10px;margin-bottom:12px}.mh h3{flex:1;margin:0}
+#appSearch{width:100%;height:36px;padding:0 12px;margin-bottom:8px;border:1px solid var(--border);border-radius:10px;background:var(--group)}
+.applist{max-height:60vh;overflow:auto;min-height:3em}
+.appitem{display:flex;align-items:center;gap:10px;width:100%;height:auto;text-align:left;background:none;color:var(--text);border-radius:0;border-bottom:1px solid var(--line);padding:10px 4px}
+.appitem .ai{flex:1;min-width:0;word-break:break-word}.appitem .mono{display:block}
+.appitem .chk{flex:none;width:20px;text-align:center;color:var(--accent);font-weight:700}
+.mf{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+button.dangerfill{background:var(--err);color:#fff}
+.card.dz{border-color:var(--err)}.dz h3{color:var(--err)}.dz .row{justify-content:space-between;flex-wrap:nowrap;gap:14px}.dz .row span{flex:1;min-width:0;font-size:14px}.dz .row button{flex:none}
+.toast{position:fixed;left:50%;bottom:20px;z-index:30;transform:translate(-50%,8px);max-width:min(92vw,420px);padding:8px 14px;border-radius:12px;background:var(--card);color:var(--text);border:1px solid var(--border);box-shadow:0 6px 18px rgba(0,0,0,.18);font-size:14px;text-align:center;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s,transform .2s,visibility 0s linear .2s}
+.toast.show{opacity:1;visibility:visible;transform:translate(-50%,0);transition:opacity .2s,transform .2s}
+.toast.err{color:var(--err);border-color:var(--err)}
+.dmsg{color:var(--err);font-size:13px;margin:8px 0 0}.dmsg:empty{display:none}
+/* save bar */
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--bar);border-top:1px solid var(--border);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));transform:translateY(110%);visibility:hidden;transition:transform .2s ease,visibility 0s linear .2s}
+@supports ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){.bar{background:var(--bar);background-color:color-mix(in srgb,var(--bar) 75%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}}
+.bar.show{transform:none;visibility:visible;transition:transform .2s ease}
+.bar .in{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.bar .grow{flex:1 1 10em}
+details.card summary{cursor:pointer;color:var(--muted);font-size:14px}
+@media (max-width:540px){.nl input[type=text]{flex:1 1 100%;width:calc(100% + 8px);min-width:0}header .t{flex:1 1 0}}
+@media (max-width:520px){.overlay{align-items:flex-end;padding:0}.dialog{max-width:none;border-radius:16px 16px 0 0;transform:translateY(100%);padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}#ago{min-height:2.8em}body{padding:14px 12px 110px}.card{padding:16px}h1{font-size:24px}.digits{flex-wrap:nowrap;gap:4px}.digits b{width:32px;height:44px;line-height:44px;font-size:22px}.digits i{width:10px}.irow{padding:10px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style></head><body><div class="wrap">
+<header><div class="t"><h1>HomeKit</h1><p class="subtitle">Make this TV a native accessory in Apple Home</p></div><span id="pill" class="pill">Starting</span></header>
+
+<div class="card">
+<h3>Apple Home</h3>
+<div class="nameline"><span class="lbl">Name</span><div class="main"><div class="nl"><input type="text" id="accName" maxlength="64" spellcheck="false" aria-label="TV name"></div><div class="hint" id="accHint" hidden></div></div></div>
+<div id="unpaired" hidden>
+<div class="digits" id="code" aria-label="Setup code"></div>
+<ol class="steps">
+<li>Open the Home app and tap <b>+</b> (top right)</li>
+<li>Tap <b>Add Accessory</b></li>
+<li>Tap <b>More options…</b></li>
+<li>Choose "<b id="nm1"></b>"</li>
+<li>Enter the 8-digit code above</li>
+<li>When iOS warns about an uncertified accessory, tap <b>Add Anyway</b></li>
+</ol>
+</div>
+<p class="status" id="paired" hidden>Added to Apple Home · <span id="ctrlCount">0</span> controller(s) · <span id="connCount">0</span> connected</p>
+</div>
+
+<div class="card">
+<h3>Inputs</h3>
+<div class="row">
+<button id="refresh">Re-detect inputs</button><button id="sync">Rewrite to HomeKit</button>
+</div>
+<div class="note" id="ago"></div>
+<div class="ghead">HDMI ports</div><div class="group" id="gHdmi"></div>
+<div class="ghead">TV</div><div class="group" id="gTv"></div>
+<div class="ghead">Apps</div><div class="group" id="gApp"></div>
+<div class="row"><button id="addBtn">+ Add app</button></div>
+</div>
+
+<details class="card"><summary>TV state and log</summary>
+<h4>TV state</h4><pre id="tv"></pre>
+<h4>Bonjour (mDNS)</h4><pre id="mdns"></pre>
+<h4>Log (newest first)</h4><pre id="log"></pre>
+</details>
+<div class="card">
+<h3>Power</h3>
+<div class="group"><div class="irow wrap"><div class="main"><b>When the TV is off</b><div class="meta"><span id="offDesc"></span> <a id="relayLink" href="https://hub.docker.com/r/dickyt/vetro-homekit-relay" target="_blank" rel="noopener" hidden>About the relay</a></div></div>
+<div class="cluster"><div class="seg" id="offMode" role="radiogroup" aria-label="When the TV is off"><button type="button" role="radio" data-v="remote">Remote only</button><button type="button" role="radio" data-v="lowpower">Stay in low power</button><button type="button" role="radio" data-v="relay">Relay</button></div></div></div>
+<div class="irow wrap" id="relayRow" hidden><div class="main"><b>Relay</b><div class="meta" id="relayDesc"></div></div>
+<div class="cluster"><button type="button" id="relaySetup">Set up</button></div></div>
+<div class="irow wrap" id="dsRow" hidden><div class="main"><b>Deep sleep after</b><div class="meta" id="dsDesc"></div></div>
+<div class="cluster"><div class="seg" id="deepSleep" role="radiogroup" aria-label="Deep sleep after"><button type="button" role="radio" data-v="0">Never</button><button type="button" role="radio" data-v="15">15 min</button><button type="button" role="radio" data-v="60">1 hour</button></div></div></div></div>
+</div>
+<div class="card dz">
+<h3>Danger zone</h3>
+<div class="row"><span><b>Reset HomeKit</b> — remove the TV from Home and make a new setup code</span><button id="reset" class="danger">Reset HomeKit</button></div>
+<div class="row"><span><b>Restart plugin</b> — restart HomeKit on the TV</span><button id="restart" class="danger">Restart plugin</button></div>
+</div>
+<p class="foot" id="meta"></p>
+</div>
+
+<div class="overlay" id="addOverlay"><div class="dialog" id="addDialog" role="dialog" aria-modal="true" aria-labelledby="addTitle">
+<div class="mh"><h3 id="addTitle">Add app</h3><button id="addDone" class="primary">Done</button></div>
+<input type="text" id="appSearch" placeholder="Search apps" autofocus autocomplete="off">
+<div class="applist" id="appList"></div>
+</div></div>
+
+<div class="overlay" id="resetOverlay"><div class="dialog" id="resetDialog" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
+<div class="mh"><h3 id="resetTitle">Reset HomeKit?</h3></div>
+<div id="resetConfirm">
+<p>This removes every pairing, clears all names, inputs and apps, and creates a new setup code.</p>
+<p class="note">The TV that is already in the Home app will show No Response. Remove it there yourself.</p>
+<div class="dmsg" id="resetMsg"></div>
+<div class="mf"><button id="resetCancel">Cancel</button><button id="resetGo" class="dangerfill">Reset</button></div>
+</div>
+<div id="resetDone" hidden>
+<p>Add the TV again with this code:</p>
+<div class="digits" id="resetCode" aria-label="Setup code"></div>
+<ol class="steps">
+<li>In the Home app, remove the old TV if it is still there</li>
+<li>Tap <b>+</b> → <b>Add Accessory</b> → <b>More options…</b></li>
+<li>Choose "<b id="resetName"></b>" and enter the code above</li>
+</ol>
+<div class="mf"><button id="resetDoneBtn" class="primary">Done</button></div>
+</div>
+</div></div>
+
+<div class="overlay" id="relayOverlay"><div class="dialog wide" id="relayDialog" role="dialog" aria-modal="true" aria-labelledby="relayTitle">
+<div class="mh"><h3 id="relayTitle">Set up the relay</h3></div>
+<ol class="steps2">
+<li><p>Run this on a machine that is always on and has Docker, such as a NAS.</p>
+<div class="callout" role="note"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 2.5 20h19L12 3.5z"/><path d="M12 10v4.5"/><path d="M12 17.5v.01"/></svg><span><b>It must be on the same local network as the TV.</b> From another network it cannot wake the TV.</span></div>
+<div class="snip"><pre id="relayCmd"></pre><button type="button" class="snipcopy" id="relayCopy" aria-label="Copy command" title="Copy command"><svg id="relayCopyIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg><svg id="relayCopiedIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button></div>
+<p class="meta" id="relayOnce"></p></li>
+<li><p>Press Save. The TV finds the relay by itself.</p></li>
+</ol>
+<details class="opts" id="relayOpts"><summary>Advanced options</summary>
+<div class="fgrp"><label for="relaySecret">Secret</label>
+<div class="frow"><input class="fld" type="text" id="relaySecret" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><button type="button" id="relayNew">Generate new</button></div>
+<div class="meta" id="secretHint"></div></div>
+<div class="fgrp"><label for="relayAddr">Relay address</label>
+<div class="frow"><input class="fld" type="text" id="relayAddr" placeholder="Found automatically" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+<div class="meta">Leave empty unless the relay is on another network or uses another port. Format: address:port</div></div>
+</details>
+<div class="mf"><button type="button" id="relayCancel">Cancel</button><button type="button" id="relaySave" class="primary">Save</button></div>
+</div></div>
+<div class="overlay" id="restartOverlay"><div class="dialog" id="restartDialog" role="dialog" aria-modal="true" aria-labelledby="restartTitle">
+<div class="mh"><h3 id="restartTitle">Restart the HomeKit plugin?</h3></div>
+<p id="restartBody">Home shows the TV as not responding for a few seconds. Pairing and settings are kept.</p>
+<div class="dmsg" id="restartMsg"></div>
+<div class="mf"><button id="restartCancel">Cancel</button><button id="restartGo" class="dangerfill">Restart</button><button id="restartDoneBtn" class="primary" hidden>Done</button></div>
+</div></div>
+
+<div class="bar" id="bar"><div class="in">
+<b class="grow">Unsaved changes</b><span class="msg err" id="m_save" style="margin:0"></span>
+<button id="discard">Discard</button><button id="save" class="primary">Save</button>
+</div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---- pure helpers ---- */
+var NAME_RE=null;
+try{NAME_RE=new RegExp('^[\\p{L}\\p{N}](?:[\\p{L}\\p{N}\' ]*[\\p{L}\\p{N}])?$','u')}catch(e){NAME_RE=null}
+function nameValid(s){return !NAME_RE||NAME_RE.test(s)}
+// null = automatic, string = custom
+function rowCustom(r){return(r.name===''||r.name===r.autoName)?null:r.name}
+function rowFromServer(s){
+ return{key:s.key,kind:s.kind,appId:s.appId||null,port:s.port,synced:s.kind==='home'?true:!!s.synced,
+  name:s.name,autoName:s.autoName,from:s.customFrom||null,origCustom:s.customName||null,
+  connected:s.connected===undefined?null:s.connected,detected:s.detected||null,hidden:!!s.hiddenInHome,isNew:false};
+}
+function serverRows(s){return(s.inputs||[]).map(rowFromServer)}
+function sig(rows){
+ var l=rows.map(function(r){return[r.key,!!r.synced,rowCustom(r)]});
+ l.sort(function(a,b){return a[0]<b[0]?-1:a[0]>b[0]?1:0});
+ return JSON.stringify(l);
+}
+// The TV's own name; an empty box counts as unchanged.
+function tvNameOf(draft,server){return(draft.name===undefined||draft.name==='')?server.name:draft.name}
+// What happens when the TV is off, and the low power time limit (minutes, 0 is never); undefined in the draft means unchanged.
+function offOf(draft,server){return draft.off===undefined?server.offMode:draft.off}
+function dsOf(draft,server){return draft.ds===undefined?server.deepSleepMin:draft.ds}
+// The relay's address ('' is "find it"), and a new secret ('' or undefined is "keep the saved one").
+function raddrOf(draft,server){return draft.raddr===undefined?server.relay.address:draft.raddr.trim()}
+function rsecretOf(draft){return draft.rsecret||''}
+function isDirty(draft,server){return sig(draft.rows)!==sig(serverRows(server))||tvNameOf(draft,server)!==server.name||offOf(draft,server)!==server.offMode||dsOf(draft,server)!==server.deepSleepMin||raddrOf(draft,server)!==server.relay.address||rsecretOf(draft)!==''}
+function secretBad(draft){var x=rsecretOf(draft);return x!==''&&x.length<8}
+function hasInvalid(draft){return(draft.name!==undefined&&draft.name!==''&&!nameValid(draft.name))||draft.rows.some(function(r){return r.name!==''&&!nameValid(r.name)})||secretBad(draft)}
+function buildBody(draft,server){
+ var b={inputs:draft.rows.map(function(r){
+  var o={key:r.key,synced:!!r.synced,name:rowCustom(r)};
+  if(r.kind==='app'&&r.isNew)o.appName=r.autoName;
+  return o;
+ })};
+ if(server&&tvNameOf(draft,server)!==server.name)b.name=tvNameOf(draft,server);
+ if(server&&offOf(draft,server)!==server.offMode)b.offMode=offOf(draft,server);
+ if(server&&dsOf(draft,server)!==server.deepSleepMin)b.deepSleepMin=dsOf(draft,server);
+ if(server&&raddrOf(draft,server)!==server.relay.address)b.relayAddress=raddrOf(draft,server);
+ if(rsecretOf(draft)!=='')b.relaySecret=rsecretOf(draft);
+ return b;
+}
+function tagOf(r){
+ if(rowCustom(r)===null)return'auto';
+ return(r.from==='home'&&r.name===r.origCustom)?'home':'custom';
+}
+// "123-45-678" -> "1234 5678"
+function formatCode(c){
+ var d=String(c||'').replace(/\D/g,'');
+ return d.length>4?d.slice(0,4)+' '+d.slice(4):d;
+}
+// Merge fresh server state into the draft. Untouched rows adopt the server's values;
+// touched rows keep the user's synced/name but follow status fields and the automatic name.
+function mergeDraft(draft,prev,server){
+ var sRows=serverRows(server);
+ if(!draft||!prev)return{rows:sRows};
+ var pm={},dm={},out=[],seen={};
+ serverRows(prev).forEach(function(r){pm[r.key]=r});
+ draft.rows.forEach(function(r){dm[r.key]=r});
+ sRows.forEach(function(s){
+  var d=dm[s.key],p=pm[s.key];seen[s.key]=1;
+  if(!d){if(!(p&&s.kind==='app'))out.push(s);return}
+  if(p&&rowCustom(d)===rowCustom(p)&&d.synced===p.synced){out.push(s);return}
+  var wasAuto=rowCustom(d)===null&&d.name!=='';
+  d.autoName=s.autoName;d.connected=s.connected;d.detected=s.detected;d.hidden=s.hidden;d.isNew=false;
+  if(wasAuto)d.name=s.autoName;
+  out.push(d);
+ });
+ draft.rows.forEach(function(d){if(!seen[d.key]&&d.isNew)out.push(d)});
+ return{rows:out};
+}
+</script>
+<script>
+function $(id){return document.getElementById(id)}
+function say(id,t,c){var m=$(id);m.textContent=t||'';m.className='msg'+(c?' '+c:'');if(id==='m_save')m.style.margin='0'}
+// One toast at a time. kind: 'busy' stays until replaced; 'err' lasts 5 s, others 2.5 s.
+var toastTimer=null;
+function placeToast(){
+ var b=$('bar'),up=/\bshow\b/.test(b.className);
+ $('toast').style.bottom=up?(b.offsetHeight+12)+'px':'calc(20px + env(safe-area-inset-bottom,0px))';
+}
+function toast(t,kind){
+ var e=$('toast');clearTimeout(toastTimer);
+ e.textContent=t;e.className='toast show'+(kind==='err'?' err':'');placeToast();
+ if(kind!=='busy')toastTimer=setTimeout(function(){e.className='toast'},kind==='err'?5000:2500);
+}
+function post(sub,b){return fetch(sub,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})}).then(function(r){return r.json()}).then(function(d){if(d&&d.error&&!d.inputs)throw new Error(d.error);return d})}
+function el(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
+
+var HINT='Use letters, numbers, spaces and apostrophes, starting and ending with a letter or number';
+var LOCKED='Always in HomeKit';
+var BADMSG='A name is invalid, so it cannot be saved',BADSECRET='The relay secret is too short, so it cannot be saved';
+var S=null,D=null,busy=0,epoch=0,renderedKeys=null,rowUI={},agoBase=null,agoAt=0,pollMs=10000;
+
+function applyState(s,flash){
+ if(!s||!s.inputs)return;
+ var old=S,changed={};
+ if(flash&&old){
+  var om={};old.inputs.forEach(function(i){om[i.key]=i.name});
+  s.inputs.forEach(function(i){if(om[i.key]!==undefined&&om[i.key]!==i.name)changed[i.key]=1});
+ }
+ var keepName=D&&old&&D.name!==undefined&&D.name!==old.name?D.name:undefined;
+ var keepOff=D&&old&&D.off!==undefined&&D.off!==old.offMode?D.off:undefined;
+ var keepDs=D&&old&&D.ds!==undefined&&D.ds!==old.deepSleepMin?D.ds:undefined;
+ var keepAddr=D&&old&&D.raddr!==undefined&&D.raddr.trim()!==old.relay.address?D.raddr:undefined,keepSecret=D?D.rsecret:undefined;
+ D=mergeDraft(D,old,s);D.name=keepName!==undefined?keepName:s.name;D.off=keepOff!==undefined?keepOff:s.offMode;D.ds=keepDs!==undefined?keepDs:s.deepSleepMin;D.raddr=keepAddr;D.rsecret=keepSecret;S=s;
+ renderStatus();renderRows(changed);renderPower();renderBar();
+}
+function freshApply(s,flash){D=null;applyState(s,flash)}
+
+function fillCode(box,c){
+ var f=formatCode(c);if(box.getAttribute('data-code')===f)return;box.setAttribute('data-code',f);
+ box.textContent='';
+ for(var i=0;i<f.length;i++){
+  if(f.charAt(i)===' ')box.appendChild(el('i'));else box.appendChild(el('b',null,f.charAt(i)));
+ }
+}
+function renderCode(c){fillCode($('code'),c)}
+function renderStatus(){
+ var s=S,p=$('pill');
+ if(s.error){p.textContent='Error: '+s.error;p.className='pill err'}
+ else if(s.running){p.textContent='Running';p.className='pill on'}
+ else{p.textContent='Starting';p.className='pill'}
+ $('unpaired').hidden=!!s.paired;$('paired').hidden=!s.paired;
+ renderCode(s.paired?'':s.setupCode);$('nm1').textContent=s.name||'';renderName();
+ $('ctrlCount').textContent=(s.controllers||[]).length;$('connCount').textContent=s.connections||0;
+ pollMs=s.pollMs||10000;agoBase=s.hdmiCheckedAgo;agoAt=Date.now();renderAgo();
+ $('tv').textContent=JSON.stringify(s.tv,null,1)+(s.tvError?'\nError: '+s.tvError:'');
+ $('mdns').textContent=JSON.stringify(s.mdns,null,1);
+ $('log').textContent=(s.log||[]).slice().reverse().join('\n')||'(empty)';
+ $('meta').textContent='Vetro HomeKit '+(s.version||'');
+}
+function renderAgo(){
+ if(!S)return;
+ var t='Checks every '+Math.round(pollMs/1000)+' s · ';
+ t+=(agoBase===null||agoBase===undefined)?'not checked yet':'last checked '+Math.max(0,Math.round(agoBase+(Date.now()-agoAt)/1000))+' s ago';
+ var failed=!!S.hdmiError;
+ var box=$('ago');box.textContent=t;
+ if(failed){var b=document.createElement('span');b.className='bad';b.textContent=' · detection failed';box.appendChild(b)}
+ box.title=failed?S.hdmiError:'';
+}
+
+function groupOf(r){return r.kind==='hdmi'?'gHdmi':(r.kind==='app'?'gApp':'gTv')}
+function rowOf(key){for(var i=0;i<D.rows.length;i++)if(D.rows[i].key===key)return D.rows[i];return null}
+
+function makeRow(r){
+ var key=r.key,u={};
+ u.el=el('div','irow');
+ u.dot=el('span','dot');if(r.kind==='hdmi')u.el.appendChild(u.dot);
+ var main=el('div','main'),nl=el('div','nl');
+ u.inp=el('input');u.inp.type='text';u.inp.maxLength=64;u.inp.spellcheck=false;nl.appendChild(u.inp);
+ u.acts=el('span','acts');
+ u.tag=el('span','tag');u.acts.appendChild(u.tag);
+ u.rev=el('button','link','Revert to auto');u.acts.appendChild(u.rev);
+ if(r.kind==='app'){u.rm=el('button','rm','✕');u.rm.title='Remove';u.rm.setAttribute('aria-label','Remove');u.acts.appendChild(u.rm)}
+ u.sub=el('div','meta');u.ml=el('div','ml');u.ml.appendChild(u.sub);u.hint=el('div','hint',HINT);u.hint.hidden=true;
+ main.appendChild(nl);main.appendChild(u.ml);main.appendChild(u.hint);u.el.appendChild(main);
+ u.cluster=el('div','cluster');
+ u.sw=el('label','sw');u.sw.title='Sync to Home';
+ u.cb=el('input');u.cb.type='checkbox';u.sw.appendChild(u.cb);u.sw.appendChild(el('span'));u.cluster.appendChild(u.sw);u.el.appendChild(u.cluster);
+ placeActs(u);
+ u.cb.onchange=function(){var x=rowOf(key);if(x&&x.kind!=='home'){x.synced=u.cb.checked;touch(x)}};
+ u.inp.oninput=function(){var x=rowOf(key);if(x){x.name=u.inp.value;touch(x)}};
+ u.inp.onblur=function(){var x=rowOf(key);if(x&&x.name===''){x.name=x.autoName;u.inp.value=x.name;touch(x)}};
+ u.rev.onclick=function(){var x=rowOf(key);if(x){x.name=x.autoName;touch(x)}};
+ if(u.rm)u.rm.onclick=function(){D.rows=D.rows.filter(function(y){return y.key!==key});renderRows({});renderBar()};
+ return u;
+}
+var mq=window.matchMedia?window.matchMedia('(max-width:540px)'):null;
+function placeActs(u){
+ var narrow=!!(mq&&mq.matches);
+ if(narrow){if(u.acts.parentNode!==u.ml)u.ml.appendChild(u.acts)}
+ else if(u.acts.parentNode!==u.cluster)u.cluster.insertBefore(u.acts,u.sw);
+}
+if(mq&&mq.addListener)mq.addListener(function(){for(var k in rowUI)placeActs(rowUI[k])});
+function touch(r){updateRow(r);renderBar()}
+
+function updateRow(r){
+ var u=rowUI[r.key];if(!u)return;
+ u.cb.checked=r.synced;if(r.kind==='home'){u.cb.disabled=true;u.cb.setAttribute('aria-disabled','true');u.sw.className='sw locked';u.sw.title=LOCKED}u.el.className='irow'+(r.synced?'':' off')+(u.flashing?' flash':'');
+ if(document.activeElement!==u.inp&&u.inp.value!==r.name)u.inp.value=r.name;
+ u.inp.setAttribute('aria-label',r.autoName+' name');u.cb.setAttribute('aria-label',r.kind==='home'?r.autoName+': '+LOCKED:'Sync '+r.autoName+' to Home');if(u.rm)u.rm.setAttribute('aria-label','Remove '+r.autoName);
+ var bad=r.name!==''&&!nameValid(r.name);
+ u.inp.className=bad?'bad':'';u.hint.hidden=!bad;
+ var t=tagOf(r);
+ u.tag.className='tag'+(t==='auto'?'':' '+t);
+ u.tag.textContent=t==='auto'?'Auto':(t==='home'?'Set in Home':'Custom');
+ u.rev.hidden=rowCustom(r)===null;
+ if(r.kind==='hdmi'){
+  u.dot.className='dot'+(r.connected===true?' on':(r.connected===null?' unk':''));
+  u.dot.title=r.connected===true?'Connected':(r.connected===false?'Not connected':'Unknown');
+ }
+ var sub='';
+ if(r.kind==='hdmi'){
+  if(r.connected===false)sub='Nothing plugged in';
+  else if(r.detected)sub='Detected: '+r.detected;
+  else if(r.connected===true)sub='Device plugged in, no name reported';
+ }else if(r.kind==='app')sub=r.appId||'';
+ if(r.hidden)sub+=(sub?' · ':'')+'Hidden in Home';
+ u.sub.textContent=sub;u.sub.hidden=!sub;
+}
+
+function renderName(){
+ var i=$('accName'),bad=D.name!==''&&!nameValid(D.name);
+ if(document.activeElement!==i&&i.value!==D.name)i.value=D.name;
+ i.className=bad?'bad':'';$('accHint').hidden=!bad;
+}
+$('accName').oninput=function(){if(D){D.name=this.value;renderName();renderBar()}};
+$('accName').onblur=function(){if(D&&D.name===''){D.name=S.name;renderName();renderBar()}};
+$('accHint').textContent=HINT;
+
+function renderRows(changed){
+ var keys=D.rows.map(function(r){return r.key}).join('|');
+ if(keys!==renderedKeys){
+  ['gHdmi','gTv','gApp'].forEach(function(g){$(g).textContent=''});
+  rowUI={};
+  D.rows.forEach(function(r){var u=makeRow(r);rowUI[r.key]=u;$(groupOf(r)).appendChild(u.el)});
+  renderedKeys=keys;
+ }
+ D.rows.forEach(updateRow);
+ $('gApp').hidden=!$('gApp').firstChild;syncChecks();
+ Object.keys(changed||{}).forEach(function(k){
+  var u=rowUI[k];if(!u)return;
+  u.flashing=true;u.el.className+=' flash';
+  setTimeout(function(){u.flashing=false;u.el.className=u.el.className.replace(' flash','')},1800);
+ });
+}
+
+function renderPower(){
+ var off=offOf(D,S),ds=dsOf(D,S),low=off==='lowpower',rel=off==='relay',w=S.watcher,r=S.relay,st=r.status||{},d,cls='meta';
+ setSeg('offMode',off);setSeg('deepSleep',String(ds));$('dsRow').hidden=!low;$('relayRow').hidden=!rel;
+ if(w&&w.error)d='The power watcher could not start, so this setting is not in effect: '+w.error;
+ else if(low)d='The screen goes dark but the TV stays on the network, so Home can turn it on right away. This uses more power than a full sleep.';
+ else if(rel)d='The TV sleeps fully. A relay on your network answers Home for it and wakes it.';
+ else d='The TV sleeps fully. Only the remote turns it on, and Home shows No Response.';
+ $('offDesc').textContent=d;$('relayLink').hidden=!rel;
+ $('dsDesc').textContent=ds?'After '+(ds===60?'1 hour':ds+' min')+' off, the TV sleeps fully. From then on only the remote turns it on.':'The TV stays in low power until it is turned on.';
+ // What the TV last saw of the relay. It looks again by itself while not connected.
+ if(!r.secretSet||st.state==='nosecret')d='Not set up yet.';
+ else if(S.offMode!=='relay')d='Save to connect.';
+ else if(st.state==='ok'){d='Connected to '+(st.name||st.ip)+(r.handedOver?', which is answering for the TV now.':'.');cls='meta ok'}
+ else if(st.state==='secret'){d='The relay has a different secret.';cls='meta warn'}
+ else if(st.state==='unreachable'){d=r.address?'No relay at '+r.address+' yet.':'No relay found yet.';cls='meta warn'}
+ else d='Looking for the relay…';
+ $('relayDesc').textContent=d;$('relayDesc').className=cls;
+ $('relaySetup').textContent=r.secretSet?'Set up again':'Set up';
+}
+
+/* ---- relay setup ---- */
+// A secret is any text both sides share. The page makes a random one and
+// shows the command that starts the relay with it; it can be typed instead.
+function newSecret(){
+ var abc='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789',n=24,out='',buf;
+ if(window.crypto&&window.crypto.getRandomValues){buf=new Uint8Array(n);window.crypto.getRandomValues(buf)}
+ for(var i=0;i<n;i++)out+=abc.charAt((buf?buf[i]:Math.floor(Math.random()*256))%abc.length);
+ return out;
+}
+// Quoted for a shell only when it has to be.
+function shellWord(t){return/^[A-Za-z0-9_.+:\/=-]+$/.test(t)?t:"'"+t.replace(/'/g,"'\\''")+"'"}
+// The command as lines: [text, class] parts, so the secret can stand out.
+function relayCommand(secret){
+ return[[['docker run -d','']],[['--name ','dim'],['vetro-homekit-relay','']],[['--network ','dim'],['host','']],[['--restart ','dim'],['unless-stopped','']],
+  [['-e ','dim'],['RELAY_SECRET=',''],[shellWord(secret),'sec']],[['docker.io/dickyt/vetro-homekit-relay','']]];
+}
+function renderRelaySetup(){
+ var x=$('relaySecret').value,bad=x.length<8,pre=$('relayCmd'),lines=relayCommand(x);
+ pre.textContent='';
+ lines.forEach(function(parts,n){
+  if(n)pre.appendChild(document.createTextNode('  '));
+  parts.forEach(function(p){if(p[1]){var e=el('span',p[1],p[0]);pre.appendChild(e)}else pre.appendChild(document.createTextNode(p[0]))});
+  if(n<lines.length-1){pre.appendChild(el('span','dim',' \\'));pre.appendChild(document.createTextNode('\n'))}
+ });
+ $('relaySecret').className='fld'+(bad?' bad':'');
+ $('secretHint').textContent=bad?'At least 8 characters.':'Any text of at least 8 characters. The command above follows what you type.';
+ $('secretHint').className=bad?'meta warn':'meta';
+ $('relaySave').disabled=bad||busy>0;$('relayCopy').disabled=bad;
+}
+$('relaySetup').onclick=function(){
+ if(!S)return;
+ $('relaySecret').value=newSecret();$('relayAddr').value=S.relay.address;
+ $('relayOnce').textContent='The secret in this command is shown only now. After you save it cannot be viewed again; Set up again makes a new one.'+(S.relay.secretSet?' A relay that is already running must then be started again with the new command.':'');
+ $('relayOpts').open=!!S.relay.address;copied(false);
+ renderRelaySetup();
+ openModal($('relayOverlay'),this,$('relayCopy'),closeModal);
+};
+$('relaySecret').oninput=renderRelaySetup;
+$('relayNew').onclick=function(){$('relaySecret').value=newSecret();renderRelaySetup()};
+var copiedTimer=null;
+function copied(on){
+ if(copiedTimer){clearTimeout(copiedTimer);copiedTimer=null}
+ $('relayCopyIcon').hidden=on;$('relayCopiedIcon').hidden=!on;$('relayCopy').className='snipcopy'+(on?' done':'');
+ $('relayCopy').setAttribute('aria-label',on?'Copied':'Copy command');$('relayCopy').title=on?'Copied':'Copy command';
+ if(on)copiedTimer=setTimeout(function(){copied(false)},1800);
+}
+$('relayCopy').onclick=function(){
+ if(copyText($('relayCmd').textContent))copied(true);
+ else{var r=document.createRange();r.selectNodeContents($('relayCmd'));var g=window.getSelection();g.removeAllRanges();g.addRange(r)}
+};
+$('relayCancel').onclick=closeModal;
+$('relaySave').onclick=function(){
+ if(!D||$('relaySecret').value.length<8)return;
+ D.off='relay';D.rsecret=$('relaySecret').value;D.raddr=$('relayAddr').value;
+ closeModal();doSave().then(null,function(){});
+};
+
+// Vetro shows this page in a sandboxed frame that may not open windows, so a
+// plain click on a link does nothing there (window.open is refused too). The
+// browser's own "open in new tab" (Cmd/Ctrl-click, middle click) still works
+// and is left alone; a plain click copies the address instead.
+function copyText(t){
+ var a=document.createElement('textarea'),ok=false;a.value=t;a.setAttribute('readonly','');a.style.cssText='position:fixed;left:-9999px;top:0';
+ document.body.appendChild(a);a.select();try{ok=document.execCommand('copy')}catch(e){ok=false}document.body.removeChild(a);return ok;
+}
+$('relayLink').onclick=function(e){
+ if(e.metaKey||e.ctrlKey||e.shiftKey||e.button)return;
+ e.preventDefault();
+ toast(copyText(this.href)?'Link copied. Paste it into a new tab.':'Hold Cmd or Ctrl and click to open the link.');
+};
+// A segmented choice: a row of buttons, one of them on.
+function setSeg(id,v){[].forEach.call($(id).children,function(b){var on=b.getAttribute('data-v')===v;b.className=on?'on':'';b.setAttribute('aria-checked',on?'true':'false')})}
+function onSeg(id,fn){$(id).onclick=function(e){var v=e.target&&e.target.getAttribute?e.target.getAttribute('data-v'):null;if(v!==null&&D){fn(v);renderPower();renderBar()}}}
+onSeg('offMode',function(v){D.off=v});
+onSeg('deepSleep',function(v){D.ds=parseInt(v,10)});
+
+function renderBar(){
+ var dirty=!!(S&&D&&isDirty(D,S)),inv=!!(D&&hasInvalid(D));
+ $('bar').className='bar'+(dirty?' show':'');placeToast();
+ $('save').disabled=inv||busy>0;
+ var m=$('m_save').textContent;
+ if(!dirty)say('m_save','');
+ else if(inv)say('m_save',secretBad(D)?BADSECRET:BADMSG,'err');
+ else if(m===BADMSG||m===BADSECRET)say('m_save','');
+}
+
+/* ---- actions ---- */
+function fail(e,shown){e.shown=shown;return Promise.reject(e)}
+function doSave(quiet){
+ if(hasInvalid(D)){say('m_save',BADMSG,'err');return fail(new Error(BADMSG),true)}
+ toast('Saving…','busy');busy++;epoch++;renderBar();
+ return post('config',buildBody(D,S)).then(function(d){
+  busy--;epoch++;freshApply(d,false);if(!quiet)toast('Saved. Home updates in a few seconds.');return d;
+ },function(e){busy--;renderBar();toast('Save failed: '+e.message,'err');return fail(e,true)});
+}
+$('save').onclick=function(){doSave().then(null,function(){})};
+$('discard').onclick=function(){freshApply(S,false);say('m_save','')};
+
+$('refresh').onclick=function(){
+ var b=this,t0=Date.now();b.disabled=true;toast('Detecting inputs…','busy');busy++;epoch++;
+ // Keep "detecting" up for at least 600 ms so a fast answer doesn't flicker.
+ function settle(fn){setTimeout(fn,Math.max(0,600-(Date.now()-t0)))}
+ post('refresh',{}).then(function(d){settle(function(){busy--;epoch++;b.disabled=false;applyState(d,true);toast(d&&d.hdmiError?'Detection failed: '+d.hdmiError:'Inputs detected',d&&d.hdmiError?'err':'')})},
+  function(e){settle(function(){busy--;b.disabled=false;toast('Detection failed: '+e.message,'err')})});
+};
+$('sync').onclick=function(){
+ var b=this;b.disabled=true;
+ var p=(S&&isDirty(D,S))?doSave(true):Promise.resolve();
+ p.then(function(){
+  toast('Rewriting to HomeKit…','busy');busy++;epoch++;
+  return post('sync',{}).then(function(d){busy--;epoch++;return d},function(e){busy--;throw e});
+ }).then(function(d){
+  b.disabled=false;applyState(d,false);toast('Rewritten. Home re-reads the inputs within about 10 seconds.');
+ },function(e){
+  b.disabled=false;if(!e.shown)toast('Rewrite failed: '+e.message,'err');
+ });
+};
+/* ---- modals (shared) ---- */
+var cur=null;
+function focusables(){
+ var list=cur.el.querySelectorAll('button,input,summary'),out=[];
+ for(var i=0;i<list.length;i++)if(!list[i].disabled&&!list[i].hidden)out.push(list[i]);
+ return out;
+}
+function openModal(overlay,opener,first,close){
+ cur={el:overlay,opener:opener,close:close};
+ overlay.className='overlay open';document.body.style.overflow='hidden';
+ first.focus();
+}
+function closeModal(){
+ if(!cur)return;
+ var o=cur.opener;cur.el.className='overlay';document.body.style.overflow='';cur=null;
+ if(o)o.focus();
+}
+document.addEventListener('keydown',function(e){
+ if(!cur)return;
+ if(e.key==='Escape'||e.keyCode===27){e.preventDefault();cur.close();return}
+ if(e.key!=='Tab'&&e.keyCode!==9)return;
+ var f=focusables();
+ if(!f.length){e.preventDefault();return}
+ var first=f[0],last=f[f.length-1],a=document.activeElement,inside=cur.el.contains(a);
+ if(e.shiftKey&&(a===first||!inside)){e.preventDefault();last.focus()}
+ else if(!e.shiftKey&&(a===last||!inside)){e.preventDefault();first.focus()}
+});
+function backdropClose(id){$(id).onclick=function(e){if(e.target===this&&cur&&cur.el===this)cur.close()}}
+backdropClose('addOverlay');backdropClose('resetOverlay');backdropClose('restartOverlay');backdropClose('relayOverlay');
+
+/* ---- reset ---- */
+var resetting=false;
+function closeReset(){if(!resetting)closeModal()}
+$('reset').onclick=function(){
+ $('resetTitle').textContent='Reset HomeKit?';$('resetConfirm').hidden=false;$('resetDone').hidden=true;
+ $('resetMsg').textContent='';$('resetCancel').disabled=false;$('resetGo').disabled=false;$('resetGo').textContent='Reset';
+ openModal($('resetOverlay'),this,$('resetCancel'),closeReset);
+};
+$('resetCancel').onclick=closeReset;$('resetDoneBtn').onclick=closeModal;
+$('resetGo').onclick=function(){
+ resetting=true;$('resetCancel').disabled=true;$('resetGo').disabled=true;$('resetGo').textContent='Resetting…';$('resetMsg').textContent='';
+ busy++;epoch++;
+ post('reset',{}).then(function(d){
+  busy--;epoch++;resetting=false;freshApply(d,false);
+  fillCode($('resetCode'),d.setupCode);$('resetName').textContent=d.name||'';
+  $('resetTitle').textContent='HomeKit reset';$('resetConfirm').hidden=true;$('resetDone').hidden=false;$('resetDoneBtn').focus();
+ },function(e){
+  busy--;resetting=false;$('resetCancel').disabled=false;$('resetGo').disabled=false;$('resetGo').textContent='Reset';
+  $('resetMsg').textContent='Reset failed: '+e.message;$('resetCancel').focus();
+ });
+};
+
+/* ---- restart ---- */
+var restarting=false;
+function closeRestart(){if(!restarting)closeModal()}
+$('restart').onclick=function(){
+ $('restartTitle').textContent='Restart the HomeKit plugin?';$('restartBody').hidden=false;$('restartMsg').textContent='';
+ $('restartCancel').hidden=false;$('restartCancel').disabled=false;$('restartGo').hidden=false;$('restartGo').disabled=false;$('restartGo').textContent='Restart';$('restartDoneBtn').hidden=true;
+ openModal($('restartOverlay'),this,$('restartCancel'),closeRestart);
+};
+$('restartCancel').onclick=closeRestart;$('restartDoneBtn').onclick=closeModal;
+function restartFail(m){
+ restarting=false;$('restartCancel').disabled=false;$('restartGo').disabled=false;$('restartGo').textContent='Restart';
+ $('restartMsg').textContent=m;$('restartCancel').focus();
+}
+$('restartGo').onclick=function(){
+ restarting=true;$('restartCancel').disabled=true;$('restartGo').disabled=true;$('restartGo').textContent='Restarting…';$('restartMsg').textContent='';
+ post('restart',{}).then(function(){
+  var t0=Date.now();
+  setTimeout(function wait(){
+   fetch('state',{cache:'no-store'}).then(function(r){return r.json()}).then(function(s){return s&&s.running},function(){return false}).then(function(up){
+    if(up){
+     restarting=false;$('restartTitle').textContent='Restarted';$('restartBody').hidden=true;
+     $('restartCancel').hidden=true;$('restartGo').hidden=true;$('restartDoneBtn').hidden=false;$('restartDoneBtn').focus();
+    }else if(Date.now()-t0>20000)restartFail('Restart timed out. Check the log below.');
+    else setTimeout(wait,700);
+   });
+  },1000);
+ },function(e){restartFail('Restart failed: '+e.message)});
+};
+
+/* ---- add app ---- */
+var appsCache=null,appsLoading=false,appsErr=null,appChecks={};
+$('addBtn').onclick=function(){
+ openModal($('addOverlay'),this,$('appSearch'),closeModal);
+ if(!appsCache){appsErr=null;loadApps()}else renderAppList();
+};
+$('addDone').onclick=closeModal;
+$('appSearch').oninput=renderAppList;
+function loadApps(){
+ if(appsLoading)return;appsLoading=true;renderAppList();
+ fetch('apps').then(function(r){return r.json()}).then(function(d){
+  appsLoading=false;
+  if(d.error)appsErr=d.error;
+  else appsCache=(d.apps||[]).slice().sort(function(a,b){return a.name.localeCompare(b.name)});
+  renderAppList();
+ }).catch(function(e){appsLoading=false;appsErr=e.message;renderAppList()});
+}
+function syncChecks(){
+ for(var k in appChecks){
+  var on=!!(D&&rowOf(k));
+  appChecks[k].chk.textContent=on?'✓':'';appChecks[k].btn.setAttribute('aria-pressed',on?'true':'false');
+ }
+}
+function renderAppList(){
+ var box=$('appList');box.textContent='';appChecks={};
+ if(appsLoading){box.textContent='Loading…';return}
+ if(appsErr){box.textContent='Failed to load: '+appsErr;return}
+ if(!appsCache)return;
+ var q=$('appSearch').value.toLowerCase(),n=0;
+ appsCache.forEach(function(a){
+  if(q&&a.name.toLowerCase().indexOf(q)<0&&a.appId.toLowerCase().indexOf(q)<0)return;
+  var key='app:'+a.appId,b=el('button','appitem'),ai=el('span','ai'),chk=el('span','chk');
+  ai.appendChild(el('span',null,a.name));ai.appendChild(el('span','mono',a.appId));
+  b.appendChild(ai);b.appendChild(chk);
+  b.onclick=function(){
+   if(!D)return;
+   if(rowOf(key))D.rows=D.rows.filter(function(y){return y.key!==key});
+   else D.rows.push({key:key,kind:'app',appId:a.appId,port:null,synced:true,name:a.name,autoName:a.name,from:null,origCustom:null,connected:null,detected:null,hidden:false,isNew:true});
+   renderRows({});renderBar();
+  };
+  appChecks[key]={btn:b,chk:chk};box.appendChild(b);n++;
+ });
+ if(!n)box.textContent='No apps found';
+ syncChecks();
+}
+
+/* ---- polling ---- */
+function poll(){
+ if(busy>0)return;var ep=epoch;
+ fetch('state').then(function(r){return r.json()}).then(function(s){if(ep===epoch&&busy===0)applyState(s,false)}).catch(function(){});
+}
+poll();setInterval(poll,4000);setInterval(renderAgo,1000);
+</script></body></html>

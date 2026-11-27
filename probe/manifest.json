@@ -1,0 +1,10 @@
+{
+  "id": "hk-probe",
+  "name": "HomeKit probe",
+  "version": "0.0.1",
+  "apiVersion": 1,
+  "permissions": [],
+  "author": "local",
+  "description": "One-off probe of the Node runtime, crypto and mDNS options.",
+  "main": "index.js"
+}

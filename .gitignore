@@ -1,0 +1,19 @@
+# Local settings: the TV's address, MAC address and SSH host key
+tools/local.env
+tools/ssh_config
+tools/known_hosts
+
+# HomeKit controller keys written by test/controller.js
+test/.pairing-*.json
+
+# System files copied from a TV for analysis. They are not ours to publish.
+tv-binaries/
+
+# Built relay images
+relay/dist/
+
+# Editor, tool and OS state
+.claude/
+.DS_Store
+node_modules/
+*.log

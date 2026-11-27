@@ -1,0 +1,5 @@
+# The relay image needs three things from this repository; nothing else is sent to Docker.
+*
+!relay/relay.js
+!homekit/relaylink.js
+!homekit/hap
