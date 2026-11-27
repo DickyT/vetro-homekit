@@ -9,10 +9,8 @@
 #   4. POST /plugins/<id>/enable
 # Every call prints its HTTP status and response body. Stops at the first failure.
 #
-# Bundle: manifest.json becomes the "manifest" object (it is NOT repeated in "files",
-# which the TV rejects). Every other non-dot file under the folder (recursive) is sent
-# as UTF-8 text in "files". Dot-files and dot-dirs are skipped. config.json is never
-# sent: it holds private keys and the TV keeps its own copy on update.
+# The bundle is built by pack.sh (the same .vplugin file that releases carry).
+# config.json is never sent: it holds private keys and the TV keeps its own copy on update.
 #
 # Auth: none is needed while Vetro pairing is off (LAN calls with no Origin header
 # are accepted). If pairing is turned on, export VETRO_TOKEN=<64 hex key> first;
@@ -55,43 +53,9 @@ fail() {
   exit 1
 }
 
-# Build the bundle. Prints "<id> <sha256>" on stdout; file names (not contents) on stderr.
-BUILD_OUT=$("$PY" -I -c '
-import hashlib, json, os, re, sys
-folder, out = sys.argv[1], sys.argv[2]
-LIMIT = 512 * 1024
-with open(os.path.join(folder, "manifest.json"), "rb") as f:
-    manifest = json.loads(f.read().decode("utf-8"))
-mid = manifest.get("id")
-if not isinstance(mid, str) or not re.match(r"^[a-z][a-z0-9-]{1,31}$", mid):
-    sys.exit("error: manifest id is missing or invalid: %r" % (mid,))
-files = {}
-for root, dirs, names in os.walk(folder):
-    dirs[:] = sorted(d for d in dirs if not d.startswith("."))
-    for name in sorted(names):
-        if name.startswith("."):
-            continue
-        full = os.path.join(root, name)
-        rel = os.path.relpath(full, folder).replace(os.sep, "/")
-        if rel == "manifest.json":
-            continue
-        if rel == "config.json":
-            print("skipped config.json (never sent)", file=sys.stderr)
-            continue
-        with open(full, "rb") as f:
-            files[rel] = f.read().decode("utf-8")
-        print("file:", rel, file=sys.stderr)
-if not files:
-    sys.exit("error: no files to send")
-total = sum(len(v.encode("utf-8")) for v in files.values())
-if total > LIMIT:
-    sys.exit("error: files total %d bytes, over the 512 KiB bundle limit" % total)
-body = json.dumps({"format": "vetro-plugin", "version": 1, "manifest": manifest, "files": files}).encode("ascii")
-with open(out, "wb") as f:
-    f.write(body)
-print(mid, hashlib.sha256(body).hexdigest())
-' "$SHARD" "$WORK/bundle.json") || fail "could not build bundle from $SHARD"
-read -r ID SHA <<<"$BUILD_OUT"
+# Build the bundle (pack.sh prints "<id> <sha256> <file>" on stdout, file names on stderr).
+BUILD_OUT=$(bash "$HERE/pack.sh" "$SHARD" "$WORK/bundle.json") || fail "could not build bundle from $SHARD"
+read -r ID SHA _ <<<"$BUILD_OUT"
 echo "bundle: id=$ID bytes=$(wc -c <"$WORK/bundle.json" | tr -d ' ') sha256=$SHA"
 
 # call LABEL METHOD PATH [extra curl args...]

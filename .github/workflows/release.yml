@@ -1,0 +1,60 @@
+# Publishes a release when a version tag is pushed:
+#   git tag v1.2.3 && git push origin v1.2.3
+# The tag must match the version in homekit/manifest.json. The release carries
+# the shard as a .vplugin file, the one Vetro installs from a file.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: The tag matches the manifest version
+        run: |
+          version=$(node -p 'require("./homekit/manifest.json").version')
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "tag $GITHUB_REF_NAME does not match the manifest version $version" >&2
+            exit 1
+          fi
+
+      # The tests that need neither a network nor a Mac.
+      - name: Tests
+        run: |
+          for t in chacha current-input power-hold poweron; do
+            node "test/$t-test.js"
+          done
+
+      - name: Pack the shard
+        run: bash pack.sh homekit
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          file=$(ls dist/*.vplugin)
+          sha=$(sha256sum "$file" | cut -d' ' -f1)
+          {
+            echo "## Install"
+            echo
+            echo "1. Download \`$(basename "$file")\` below."
+            echo "2. Open the Vetro dashboard, go to **Vetro Shards**, then **Install from a file or develop a Shard**."
+            echo "3. Turn on **Developer mode** (needed for Shards that are not in Vetro's catalog), choose the file and confirm."
+            echo "4. Switch the Shard on, open its tab, and add the TV in the Home app with the setup code shown there."
+            echo
+            echo "Updating from an earlier version is the same; pairings and settings are kept."
+            echo
+            echo "SHA-256: \`$sha\`"
+          } > notes.md
+          gh release create "$GITHUB_REF_NAME" "$file" --title "vetro-homekit ${GITHUB_REF_NAME#v}" --notes-file notes.md --generate-notes

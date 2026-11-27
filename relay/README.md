@@ -2,7 +2,7 @@
 
 Keeps a Samsung TV in Apple Home while the TV is fully asleep, and wakes it when you turn it on in Home.
 
-It is the companion of [vetro-homekit](https://github.com/dickyt/vetro-homekit), a plugin that makes a Samsung TV running Vetro a native HomeKit Television accessory. On its own this image does nothing: it needs a TV with that plugin.
+It is the companion of [vetro-homekit](https://github.com/dickyt/vetro-homekit), a plugin that makes a Samsung TV running Vetro a native HomeKit Television accessory. On its own this image does nothing: it needs a TV with that plugin. If the plugin is not on your TV yet, [install it first](https://github.com/dickyt/vetro-homekit#install).
 
 - Source: [github.com/dickyt/vetro-homekit](https://github.com/dickyt/vetro-homekit) (this is the `relay/` folder)
 - Image: [`dickyt/vetro-homekit-relay`](https://hub.docker.com/r/dickyt/vetro-homekit-relay) on Docker Hub, for `linux/amd64` and `linux/arm64`

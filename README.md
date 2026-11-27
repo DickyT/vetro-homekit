@@ -2,7 +2,20 @@
 
 A Samsung TV as a native Apple Home accessory.
 
+> **TL;DR** Install one file on a Samsung TV running Vetro and the TV appears in Apple's Home app. **Your iPhone becomes the TV's remote**: the remote in Control Center moves through the TV's menus, and the phone's volume buttons change the TV's volume. You can also turn the TV on and off and switch inputs from Home, Siri, scenes and automations.
+
 vetro-homekit is a Vetro shard (plugin) that runs on the TV itself and speaks HomeKit Accessory Protocol over IP. The TV shows up in the Home app as a Television: no Homebridge, no Home Assistant, no extra hub.
+
+## Install
+
+**[Download the latest release](https://github.com/DickyT/vetro-homekit/releases/latest)**: one file, `homekit-<version>.vplugin`.
+
+1. Open the Vetro dashboard (`http://<the TV's address>:8099`), go to **Vetro Shards**, then **Install from a file or develop a Shard**.
+2. Turn on **Developer mode**. Vetro asks for it for any Shard that is not in its own catalog.
+3. Choose the `.vplugin` file and confirm. Then switch the Shard on.
+4. Open the Shard's **HomeKit** tab. It shows a setup code. In the Home app: **+ → Add Accessory → More options… → Samsung TV**, and enter the code. iOS warns that the accessory is uncertified; choose Add Anyway.
+
+To update, install a newer file the same way. Pairings and settings are kept.
 
 ## What you get in Home
 
@@ -18,27 +31,7 @@ Everything is configured on a settings page served by the TV.
 
 - A Samsung Tizen TV running **Vetro** with unsigned shards allowed (Developer mode in Vetro). Developed and tested on a 2024 QN90D.
 - A HomeKit home with a home hub (HomePod or Apple TV) for remote access and automations, as with any HomeKit accessory.
-- To install from this repository: a computer on the same network with `bash`, `curl` and `python3`.
-
-## Install
-
-```bash
-git clone https://github.com/dickyt/vetro-homekit.git
-```
-
-```bash
-cd vetro-homekit
-```
-
-```bash
-VETRO_HOST=<the TV's address> bash deploy.sh homekit
-```
-
-The TV has to be on. If the call ends with HTTP 408, run it again until it prints `deployed homekit`.
-
-Then open the shard's page in Vetro (or `http://<the TV's address>:8099/plugins/homekit/api/ui`), and add the TV in the Home app with the setup code shown there: **+ → Add Accessory → More options… → Samsung TV**. iOS warns that the accessory is uncertified; choose Add Anyway.
-
-To keep from typing the address every time, copy `tools/local.env.example` to `tools/local.env` and fill it in.
+- Vetro 0.5.0 or later (the first version with Shards), on a TV whose Vetro runs a recent Node. The shard is modern JavaScript and was developed on Node 18; it does not load on older TVs.
 
 ## When the TV is off
 
@@ -67,14 +60,30 @@ A HomeKit hub checks every accessory about once a minute. A Samsung TV in its no
 |---|---|
 | `homekit/` | The shard: `index.js` (main), `television.js` (the accessory), `tv.js` (TV control), `power.js` (power watcher), `relaylink.js` (relay protocol), `ui.html` (settings page), `hap/` (HomeKit stack) |
 | `relay/` | The relay service, its Dockerfile and [its guide](relay/README.md) |
-| `deploy.sh` | Installs a shard folder on the TV over Vetro's plugin API |
+| `pack.sh`, `deploy.sh` | Pack the shard into a `.vplugin` file; install it on a TV over Vetro's plugin API |
 | `test/` | Unit and end-to-end tests, a minimal HomeKit controller, and a local preview of the settings page |
 | `probe/` | A one-off shard that reports what the TV's Node runtime can do |
 | `tools/` | Example local settings: `local.env.example` (the TV's address, for `deploy.sh`), `ssh_config.example` (root shell on the TV) |
 
 ## Development
 
-Tests run on any machine with Node 18 or later, without a TV:
+Install on a TV straight from a checkout (needs `bash`, `curl` and `python3`, and the TV switched on):
+
+```bash
+VETRO_HOST=<the TV's address> bash deploy.sh homekit
+```
+
+If the call ends with HTTP 408, run it again until it prints `deployed homekit`. To keep from typing the address, copy `tools/local.env.example` to `tools/local.env` and fill it in.
+
+Build the `.vplugin` file that releases carry:
+
+```bash
+bash pack.sh
+```
+
+A release is published by pushing a tag that matches the version in `homekit/manifest.json` (for example `v1.2.3`); a GitHub Actions workflow packs the shard and attaches it.
+
+Tests run on any machine with Node 18 or later, without a TV (`mdns-race` needs a Mac):
 
 ```bash
 for t in chacha current-input mdns-race power-hold poweron relay relay-plugin; do node test/$t-test.js || break; done

@@ -9,7 +9,8 @@ test/.pairing-*.json
 # System files copied from a TV for analysis. They are not ours to publish.
 tv-binaries/
 
-# Built relay images
+# Built bundles and relay images
+dist/
 relay/dist/
 
 # Editor, tool and OS state

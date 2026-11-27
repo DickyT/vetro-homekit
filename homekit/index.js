@@ -23,7 +23,7 @@ const os = require('os');
 const Tv = require('./tv').Tv;
 const television = require('./television');
 
-const VERSION = '0.6.7';
+const VERSION = '0.6.8';
 const SCHEMA = 4;
 const CATEGORY_TELEVISION = 31;
 const POLL_MS = 10000;
