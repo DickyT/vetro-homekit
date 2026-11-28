@@ -18,12 +18,25 @@ const SOURCE_CACHES = [
   '/opt/usr/home/owner/apps_rw/com.samsung.tv.home.sidebar/data/.sourceCache',
   '/opt/usr/home/owner/apps_rw/com.samsung.tv.csfs/data/.sourceCache',
 ];
+// Vetro's launcher settings: `enabled` is Vetro's own launcher, `customApp` the
+// app set as the launcher instead. With neither, Samsung's Home answers the key.
+const DOCK_STATE = '/opt/usr/home/owner/share/vetro-dock.json';
 const KEYS = [
   'XF86AudioRaiseVolume', 'XF86AudioLowerVolume', 'XF86AudioMute', 'XF86PowerOff',
   'Up', 'Down', 'Left', 'Right', 'Return', 'XF86Back', 'XF86Home', 'XF86Menu', 'XF86Info', 'XF86Exit',
   'XF86DiscretSourceTV', 'XF86DiscretHDMI1', 'XF86DiscretHDMI2', 'XF86DiscretHDMI3', 'XF86DiscretHDMI4',
   'XF86PlayBack', 'XF86AudioNext', 'XF86AudioPrev', 'XF86AudioRewind', 'XF86AudioForward',
 ];
+
+// What the Home key opens, from the text of Vetro's launcher state:
+// { kind: 'vetro' } | { kind: 'app', appId } | { kind: 'samsung' }.
+function homeTarget(text) {
+  let d = null;
+  try { d = JSON.parse(text); } catch (e) { /* unreadable: Samsung's */ }
+  if (d && d.enabled === true) return { kind: 'vetro' };
+  if (d && typeof d.customApp === 'string' && APP_ID_RE.test(d.customApp)) return { kind: 'app', appId: d.customApp };
+  return { kind: 'samsung' };
+}
 
 function vetroPort() {
   const p = parseInt(process.env.VETRO_PORT || '', 10);
@@ -104,6 +117,17 @@ class Tv {
     });
   }
 
+  // Open what the Home key opens. A software Home key reaches Samsung's Home
+  // first, which then flashes before a custom launcher covers it, so a custom
+  // launcher is started directly. Vetro's own launcher is reached by the key.
+  home() {
+    return this.execute('cat ' + DOCK_STATE + ' 2>/dev/null', 5000).then((r) => homeTarget(r.stdout || ''), () => ({ kind: 'samsung' }))
+      .then((t) => {
+        if (t.kind !== 'app') return this.key('XF86Home');
+        return this.launch(t.appId).catch(() => this.key('XF86Home'));
+      });
+  }
+
   launch(appId) {
     if (!APP_ID_RE.test(appId)) return Promise.reject(new Error('bad app id'));
     return this.execute('/usr/bin/app_launcher -s ' + appId + ' 2>&1', 15000).then((r) => {
@@ -174,4 +198,4 @@ class Tv {
   }
 }
 
-module.exports = { Tv, KEYS, parseState };
+module.exports = { Tv, KEYS, parseState, homeTarget };

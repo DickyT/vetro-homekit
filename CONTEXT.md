@@ -70,6 +70,7 @@ Identity (`deviceId`, `ltsk`, `ltpk`, `setupCode`, `pairings`), `port`, `name`, 
 ## 4. The accessory
 
 - One accessory, aid 1. Service base iids are fixed (Info 1, Protocol 8, Television 10, Speaker 30, InputSource 100 + id × 10), so ids stay stable when inputs come and go.
+- **The `home` input opens what the Home key opens**, read from Vetro's `/opt/usr/home/owner/share/vetro-dock.json` (`tv.home()`): `enabled: true` is Vetro's launcher (the software `XF86Home` key reaches it through Vetro); else a non-empty `customApp` is started directly with `app_launcher -s` (a software Home key reaches Samsung's Home first and flashes it before a custom launcher covers it; if the app will not start, the key is sent instead); else Samsung's Home via the key. A Remapper rule on the Home key is not read.
 - Inputs: `home` (id 1, always in Home), `tv` (2, the tuner, opt-in), `hdmi1..4` (3-6), `airplay` (7), apps (11-30). Each has an automatic name (the device's HDMI-CEC name) and an optional custom name set on the page or in Home.
 - **AirPlay** is Samsung's `com.samsung.tv.airplay-app-2`. Its manifest says `nodisplay="true"`, so it is not in Vetro's app list; it is a fixed input instead. `app_launcher -s` brings it to the front, and it is the full-screen app while it shows.
 - **Current input** comes from the foreground app and the active source (`television.js` `currentInput`). An app in Home that is in front wins; the source viewer in front means the HDMI port or tuner; anything else is the TV itself.

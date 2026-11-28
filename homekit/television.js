@@ -153,7 +153,7 @@ function buildTelevision(opts) {
     const input = byId.get(id);
     if (!input) throw new HapError(Status.InvalidValue);
     log('switch to ' + input.name);
-    if (input.kind === 'home') return tv.key('XF86Home');
+    if (input.kind === 'home') return tv.home();
     if (input.kind === 'tv') return tv.key('XF86DiscretSourceTV');
     if (input.kind === 'hdmi') return tv.key('XF86DiscretHDMI' + input.hdmi);
     if (input.kind === 'airplay') return tv.launch(AIRPLAY_APP);

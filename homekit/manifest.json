@@ -1,7 +1,7 @@
 {
   "id": "homekit",
   "name": "HomeKit",
-  "version": "0.6.8",
+  "version": "0.6.9",
   "apiVersion": 1,
   "permissions": ["exec"],
   "author": "DickyT",

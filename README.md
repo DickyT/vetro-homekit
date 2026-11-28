@@ -86,7 +86,7 @@ A release is a tag named after the version in `homekit/manifest.json` (for examp
 Tests run on any machine with Node 18 or later, without a TV (`mdns-race` needs a Mac):
 
 ```bash
-for t in chacha current-input mdns-race power-hold poweron relay relay-plugin; do node test/$t-test.js || break; done
+for t in chacha current-input home-target mdns-race power-hold poweron relay relay-plugin; do node test/$t-test.js || break; done
 ```
 
 `relay-test` and `relay-plugin-test` start a relay on the machine and send a Wake-on-LAN packet for a made-up address on your network.
